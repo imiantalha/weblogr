@@ -51,7 +51,7 @@ $users = $con->query('SELECT username FROM users ORDER BY username ASC');
 $base = ' FROM blogs b JOIN users u ON b.user_id=u.user_id';
 $conditions = [];
 $params = [];
-types = '';
+$types = '';
 
 if ($category !== '') {
     $conditions[] = 'b.category=?';
