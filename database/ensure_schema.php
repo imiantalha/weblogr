@@ -34,35 +34,63 @@ try {
         throw new RuntimeException('Unable to read canonical database schema.');
     }
 
-    preg_match_all('/CREATE TABLE `[^`]+`\\s*\\(.*?\\) ENGINE=.*?;/s', $schema, $matches);
+    // Only extract CREATE TABLE statements. This intentionally ignores the
+    // destructive DROP TABLE and other fresh-install statements in the file.
+    preg_match_all(
+        '/CREATE\s+TABLE\s+`([^`]+)`\s*\(.*?\)\s*ENGINE\s*=.*?;/is',
+        $schema,
+        $matches,
+        PREG_SET_ORDER
+    );
 
-    if (empty($matches[0])) {
+    if (empty($matches)) {
         throw new RuntimeException('No CREATE TABLE statements found in canonical schema.');
     }
 
-    $created = 0;
-    $existing = 0;
-
-    foreach ($matches[0] as $statement) {
-        if (!preg_match('/CREATE TABLE `([^`]+)`/i', $statement, $tableMatch)) {
-            continue;
-        }
-
-        $table = $tableMatch[1];
-        $result = $mysqli->query("SHOW TABLES LIKE '" . $mysqli->real_escape_string($table) . "'");
-
-        if ($result->num_rows > 0) {
-            $existing++;
-            echo "[skip] {$table} already exists\n";
-            continue;
-        }
-
-        $mysqli->query($statement);
-        $created++;
-        echo "[create] {$table}\n";
+    $expectedTables = [];
+    foreach ($matches as $match) {
+        $expectedTables[$match[1]] = $match[0];
     }
 
-    echo "Database bootstrap complete: {$created} created, {$existing} already present.\n";
+    $created = [];
+    $existing = [];
+
+    echo 'Weblogr schema check: database=' . $db . ', expected=' . count($expectedTables) . " tables\n";
+
+    foreach ($expectedTables as $table => $statement) {
+        $escapedTable = $mysqli->real_escape_string($table);
+        $result = $mysqli->query(
+            "SELECT 1 FROM information_schema.tables " .
+            "WHERE table_schema = DATABASE() AND table_name = '{$escapedTable}' LIMIT 1"
+        );
+
+        if ($result->num_rows > 0) {
+            $existing[] = $table;
+            echo "[exists] {$table}\n";
+            continue;
+        }
+
+        // CREATE TABLE IF NOT EXISTS makes this safe if another deployment
+        // creates the table between the check and the CREATE statement.
+        $safeStatement = preg_replace(
+            '/^CREATE\s+TABLE\s+/i',
+            'CREATE TABLE IF NOT EXISTS ',
+            $statement,
+            1
+        );
+
+        if ($safeStatement === null) {
+            throw new RuntimeException("Unable to prepare CREATE TABLE statement for {$table}.");
+        }
+
+        $mysqli->query($safeStatement);
+        $created[] = $table;
+        echo "[created] {$table}\n";
+    }
+
+    echo 'Weblogr schema check complete: ' . count($created) .
+        ' created, ' . count($existing) . ' already present, ' .
+        count($expectedTables) . " expected.\n";
 } catch (Throwable $exception) {
     fwrite(STDERR, 'Database bootstrap failed: ' . $exception->getMessage() . "\n");
     exit(1);
