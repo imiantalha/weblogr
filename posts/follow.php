@@ -16,7 +16,9 @@ require '../database/db.php';
 
 $follower_id = (int) $_SESSION['user_id'];
 $username = strtoupper((string) $_SESSION['username']);
-$user_id = filter_var($_POST['user_id'] ?? 0, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+$user_id = filter_var($_POST['user_id'] ?? 0, FILTER_VALIDATE_INT, [
+    'options' => ['min_range' => 1],
+]);
 
 if (!$user_id || $user_id === $follower_id) {
     $con->close();
@@ -27,7 +29,9 @@ if (!$user_id || $user_id === $follower_id) {
 try {
     $con->begin_transaction();
 
-    $target = $con->prepare('SELECT user_id FROM users WHERE user_id = ? LIMIT 1');
+    $target = $con->prepare(
+        'SELECT user_id FROM users WHERE user_id = ? LIMIT 1'
+    );
     $target->bind_param('i', $user_id);
     $target->execute();
     $target_exists = $target->get_result()->num_rows === 1;
@@ -37,20 +41,21 @@ try {
         throw new RuntimeException('User not found.');
     }
 
-    $check = $con->prepare('SELECT 1 FROM followers WHERE blogger_id = ? AND follower_id = ? LIMIT 1');
-    $check->bind_param('ii', $user_id, $follower_id);
-    $check->execute();
-    $already_following = $check->get_result()->num_rows === 1;
-    $check->close();
+    $follow = $con->prepare(
+        'INSERT IGNORE INTO followers (blogger_id, follower_id)
+         VALUES (?, ?)'
+    );
+    $follow->bind_param('ii', $user_id, $follower_id);
+    $follow->execute();
+    $inserted = $follow->affected_rows === 1;
+    $follow->close();
 
-    if (!$already_following) {
-        $follow = $con->prepare('INSERT INTO followers (blogger_id, follower_id) VALUES (?, ?)');
-        $follow->bind_param('ii', $user_id, $follower_id);
-        $follow->execute();
-        $follow->close();
-
+    if ($inserted) {
         $notification_content = "$username started following you.";
-        $notification = $con->prepare('INSERT INTO notifications (content, user_id) VALUES (?, ?)');
+        $notification = $con->prepare(
+            'INSERT INTO notifications (content, user_id)
+             VALUES (?, ?)'
+        );
         $notification->bind_param('si', $notification_content, $user_id);
         $notification->execute();
         $notification->close();
@@ -65,5 +70,7 @@ try {
     $con->close();
     error_log('Follow failed: ' . $exception->getMessage());
     http_response_code($exception->getMessage() === 'User not found.' ? 404 : 500);
-    echo $exception->getMessage() === 'User not found.' ? 'User not found.' : 'Unable to follow the user.';
+    echo $exception->getMessage() === 'User not found.'
+        ? 'User not found.'
+        : 'Unable to follow the user.';
 }
