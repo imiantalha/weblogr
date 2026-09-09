@@ -60,33 +60,35 @@ try {
 
     if (!$already_liked) {
         $statement = $con->prepare(
-            'INSERT INTO comment_likes (comment_id, user_id)
+            'INSERT IGNORE INTO comment_likes (comment_id, user_id)
              VALUES (?, ?)'
         );
         $statement->bind_param('ii', $comment_id, $user_id);
         $statement->execute();
+        $inserted = $statement->affected_rows === 1;
         $statement->close();
 
-        $statement = $con->prepare(
-            'UPDATE comments
-             SET likes = likes + 1
-             WHERE comment_id = ?'
-        );
-        $statement->bind_param('i', $comment_id);
-        $statement->execute();
-        $statement->close();
-
-        $commenter_id = (int) $comment['commenter_id'];
-
-        if ($commenter_id !== $user_id) {
-            $notification_content = "$username liked your comment.";
+        if ($inserted) {
             $statement = $con->prepare(
-                'INSERT INTO notifications (content, user_id)
-                 VALUES (?, ?)'
+                'UPDATE comments
+                 SET likes = likes + 1
+                 WHERE comment_id = ?'
             );
-            $statement->bind_param('si', $notification_content, $commenter_id);
+            $statement->bind_param('i', $comment_id);
             $statement->execute();
             $statement->close();
+
+            $commenter_id = (int) $comment['commenter_id'];
+            if ($commenter_id !== $user_id) {
+                $notification_content = "$username liked your comment.";
+                $statement = $con->prepare(
+                    'INSERT INTO notifications (content, user_id)
+                     VALUES (?, ?)'
+                );
+                $statement->bind_param('si', $notification_content, $commenter_id);
+                $statement->execute();
+                $statement->close();
+            }
         }
     }
 
