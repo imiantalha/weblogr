@@ -1,0 +1,7 @@
+{
+    "name": "weblogr/weblogr",
+    "description": "A modern publishing platform for writers to share ideas, discover stories and build an audience",
+    "type": "project",
+    "require": {},
+    "require-dev": {}
+}
