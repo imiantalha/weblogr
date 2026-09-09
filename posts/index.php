@@ -143,7 +143,7 @@ function page_url(int $page, array $query): string
 
             <form action="index.php" method="get" class="post-filters">
                 <div class="search-field">
-                    <i class="fas fa-search"></i>
+                    <i class="fas fa-search" aria-hidden="true"></i>
                     <input
                         name="search"
                         value="<?php echo e($search); ?>"
@@ -153,7 +153,7 @@ function page_url(int $page, array $query): string
                     >
                 </div>
 
-                <select name="category" class="filter">
+                <select name="category" class="filter" aria-label="Filter by category">
                     <option value="">All categories</option>
                     <?php foreach ($allowed_categories as $option): ?>
                         <option value="<?php echo e($option); ?>" <?php echo $category === $option ? 'selected' : ''; ?>>
@@ -162,7 +162,7 @@ function page_url(int $page, array $query): string
                     <?php endforeach; ?>
                 </select>
 
-                <select name="username" class="filter">
+                <select name="username" class="filter" aria-label="Filter by author">
                     <option value="">All authors</option>
                     <?php while ($user = $users->fetch_assoc()): ?>
                         <option value="<?php echo e($user['username']); ?>" <?php echo $username_filter === $user['username'] ? 'selected' : ''; ?>>
@@ -171,19 +171,19 @@ function page_url(int $page, array $query): string
                     <?php endwhile; ?>
                 </select>
 
-                <select name="sort" class="filter">
+                <select name="sort" class="filter" aria-label="Sort stories">
                     <option value="newest_first" <?php echo $sort === 'newest_first' ? 'selected' : ''; ?>>Newest</option>
                     <option value="oldest_first" <?php echo $sort === 'oldest_first' ? 'selected' : ''; ?>>Oldest</option>
                 </select>
 
-                <select name="popularity" class="filter">
+                <select name="popularity" class="filter" aria-label="Filter by popularity">
                     <option value="">Popularity</option>
                     <option value="popular" <?php echo $popularity === 'popular' ? 'selected' : ''; ?>>Most popular</option>
                     <option value="unpopular" <?php echo $popularity === 'unpopular' ? 'selected' : ''; ?>>Least popular</option>
                 </select>
 
                 <button type="submit" class="submit">
-                    <i class="fas fa-search"></i>
+                    <i class="fas fa-search" aria-hidden="true"></i>
                     Search
                 </button>
 
@@ -201,7 +201,7 @@ function page_url(int $page, array $query): string
                 <?php while ($row = $result->fetch_assoc()): ?>
                     <?php $is_liked = (int) $row['liked_by_viewer'] === 1; ?>
                     <article class="post-container">
-                        <span id="display-title"><?php echo e((string) $row['title']); ?></span>
+                        <span class="display-title"><?php echo e((string) $row['title']); ?></span>
 
                         <div class="post-meta">
                             <span>
@@ -210,13 +210,13 @@ function page_url(int $page, array $query): string
                                 </a>
                             </span>
                             <span>
-                                <i class="far fa-calendar"></i>
+                                <i class="far fa-calendar" aria-hidden="true"></i>
                                 <?php echo e(date('d M Y', strtotime((string) $row['created_at']))); ?>
                             </span>
 
                             <?php if (!empty($row['category'])): ?>
                                 <span>
-                                    <i class="far fa-folder"></i>
+                                    <i class="far fa-folder" aria-hidden="true"></i>
                                     <?php echo e(ucfirst((string) $row['category'])); ?>
                                 </span>
                             <?php endif; ?>
@@ -224,14 +224,14 @@ function page_url(int $page, array $query): string
 
                         <?php if (!empty($row['image'])): ?>
                             <img
-                                id="display-image"
+                                class="display-image"
                                 src="../images/<?php echo rawurlencode((string) $row['image']); ?>"
                                 alt="<?php echo e((string) $row['title']); ?>"
                                 loading="lazy"
                             >
                         <?php endif; ?>
 
-                        <p id="display-para"><?php echo nl2br(e((string) $row['description'])); ?></p>
+                        <p class="display-para"><?php echo nl2br(e((string) $row['description'])); ?></p>
 
                         <div class="post-actions">
                             <button
@@ -241,19 +241,19 @@ function page_url(int $page, array $query): string
                                 aria-label="<?php echo $is_liked ? 'Unlike post' : 'Like post'; ?>"
                                 aria-pressed="<?php echo $is_liked ? 'true' : 'false'; ?>"
                             >
-                                <i class="fas fa-heart"></i>
+                                <i class="fas fa-heart" aria-hidden="true"></i>
                                 <span id="like-count-<?php echo (int) $row['blog_id']; ?>">
                                     <?php echo (int) $row['likes']; ?>
                                 </span>
                             </button>
 
                             <a href="../comments/comments.php?blog_id=<?php echo (int) $row['blog_id']; ?>">
-                                <i class="far fa-comment"></i>
+                                <i class="far fa-comment" aria-hidden="true"></i>
                                 Discuss
                             </a>
 
                             <a href="report.php?blog_id=<?php echo (int) $row['blog_id']; ?>&blogger_id=<?php echo (int) $row['user_id']; ?>">
-                                <i class="far fa-flag"></i>
+                                <i class="far fa-flag" aria-hidden="true"></i>
                                 Report
                             </a>
                         </div>
@@ -261,7 +261,7 @@ function page_url(int $page, array $query): string
                 <?php endwhile; ?>
             <?php else: ?>
                 <div class="empty-state">
-                    <div class="empty-icon">
+                    <div class="empty-icon" aria-hidden="true">
                         <i class="fas fa-compass"></i>
                     </div>
                     <h2>No stories here yet</h2>
@@ -275,7 +275,7 @@ function page_url(int $page, array $query): string
                         <a href="index.php" class="submit">Reset discovery</a>
                     <?php else: ?>
                         <a href="new_post.php" class="submit">
-                            <i class="fas fa-pen"></i>
+                            <i class="fas fa-pen" aria-hidden="true"></i>
                             Write the first story
                         </a>
                     <?php endif; ?>
@@ -285,18 +285,12 @@ function page_url(int $page, array $query): string
             <?php if ($total_pages > 1): ?>
                 <nav class="pagination" aria-label="Pagination">
                     <span>Page <?php echo $page; ?> of <?php echo $total_pages; ?></span>
-
                     <div>
                         <?php if ($page > 1): ?>
-                            <a href="<?php echo e(page_url($page - 1, $query)); ?>" class="secondary-button">
-                                ← Previous
-                            </a>
+                            <a href="<?php echo e(page_url($page - 1, $query)); ?>" class="secondary-button">← Previous</a>
                         <?php endif; ?>
-
                         <?php if ($page < $total_pages): ?>
-                            <a href="<?php echo e(page_url($page + 1, $query)); ?>" class="submit">
-                                Next →
-                            </a>
+                            <a href="<?php echo e(page_url($page + 1, $query)); ?>" class="submit">Next →</a>
                         <?php endif; ?>
                     </div>
                 </nav>
